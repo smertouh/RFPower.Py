@@ -124,8 +124,10 @@ class RFPowerTangoServer(TangoServerPrototype):
             self.log_exception('Error calculating power')
             return -1.0
 
-    @command
-    def pulse_off(self):
+    @command(dtype_in=str)
+    def pulse_off(self, pwd):
+        if pwd != 'topsecret':
+            return
         n = 0
         for k in range(12):
             try:
@@ -147,7 +149,7 @@ def looping():
             p = dev.calculate_anode_power()
             if p > dev.power_limit_vaue:
                 dev.error('Anode power limit exceeded')
-                dev.pulse_off()
+                dev.pulse_off('topsecret')
         except:
             dev.log_exception('Error in loop')
 
