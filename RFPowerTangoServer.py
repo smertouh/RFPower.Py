@@ -106,9 +106,11 @@ class RFPowerTangoServer(TangoServerPrototype):
                 prf = i1 * ua / 2.0
                 ptot = ea * ia
                 pa = ptot - prf
+                self.power = pa
                 return pa
             except:
                 log_exception('Can not calculate power')
+                self.power = 0.0
                 return 0.0
 
 
