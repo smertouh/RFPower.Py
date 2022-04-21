@@ -33,6 +33,7 @@ class RFPowerTangoServer(TangoServerPrototype):
 
     def init_device(self):
         self.power = 0.0
+        self.rf_power = 0.0
         self.power_limit_value = 50.0
         self.device_name = ''
         self.timer = None
@@ -54,12 +55,12 @@ class RFPowerTangoServer(TangoServerPrototype):
             self.adc = tango.DeviceProxy(self.config.get('adc', 'binp/nbi/adc0'))
             self.dac = tango.DeviceProxy(self.config.get('dac', 'binp/nbi/dac0'))
 
-            self.ia = self.get_scale(self.adc, 'APS_C')
-            self.ea = self.get_scale(self.adc, 'An_V')
-            self.ua = self.get_scale(self.adc, 'RF_UA1')
-            self.ic = self.get_scale(self.adc, 'Cath_C')
-            self.iscr = self.get_scale(self.adc, 'S_C1(A)')
-            self.ug1 = self.get_scale(self.adc, 'RF_UG1')
+            self.ia = self.get_scale(self.adc, self.config.get('ia', 'chan1'))
+            self.ea = self.get_scale(self.adc, self.config.get('ea', 'chan2'))
+            self.ua = self.get_scale(self.adc, self.config.get('ua', 'chan3'))
+            self.ic = self.get_scale(self.adc, self.config.get('ic', 'chan4'))
+            self.iscr = self.get_scale(self.adc, self.config.get('iscr', 'chan5'))
+            self.ug1 = self.get_scale(self.adc, self.config.get('ug1', 'chan6'))
 
             self.logger.info('%s has been initialized' % self.device_name)
             self.set_state(DevState.RUNNING)
@@ -91,12 +92,12 @@ class RFPowerTangoServer(TangoServerPrototype):
 
     def calculate_anode_power(self):
         try:
-            ia = self.adc.read_attribute('APS_C').value * self.ia
-            ea = self.adc.read_attribute('An_V').value * self.ea
-            ua = self.adc.read_attribute('RF_UA1').value * self.ua
-            ic = self.adc.read_attribute('Cath_C').value * self.ic
-            iscr = self.adc.read_attribute('S_C1(A)').value * self.iscr
-            ug1 = self.adc.read_attribute('RF_UG1').value * self.ug1
+            ia = self.adc.read_attribute(self.config.get('ia', 'chan1')).value * self.ia
+            ea = self.adc.read_attribute(self.config.get('ea', 'chan2')).value * self.ea
+            ua = self.adc.read_attribute(self.config.get('ua', 'chan3')).value * self.ua
+            ic = self.adc.read_attribute(self.config.get('ic', 'chan4')).value * self.ic
+            iscr = self.adc.read_attribute(self.config.get('iscr', 'chan5')).value * self.iscr
+            ug1 = self.adc.read_attribute(self.config.get('ug1', 'chan6')).value * self.ug1
             try:
                 t = numpy.arccos(-77.0/ug1)
                 # a0 = (numpy.sin(t) - t * numpy.cos(t)) / (numpy.pi * (1 - numpy.cos(t)))
@@ -105,28 +106,34 @@ class RFPowerTangoServer(TangoServerPrototype):
                 a1 = (t - numpy.sin(t) * numpy.cos(t))
                 i1 = (ic - iscr) * a1 / a0
                 prf = i1 * ua / 2.0
+                self.rf_power = prf
                 ptot = ea * ia
                 pa = ptot - prf
                 self.power = pa
+                self.anode_power.set_quality(tango.AttrQuality.ATTR_VALID)
                 return pa
             except:
                 log_exception('Can not calculate power')
-                self.power = 0.0
-                return 0.0
-
-
-
+                self.power = -1.0
+                self.rf_power = -1.0
+                self.anode_power.set_quality(tango.AttrQuality.ATTR_INVALID)
+                return -1.0
         except:
+            self.anode_power.set_quality(tango.AttrQuality.ATTR_INVALID)
             log_exception(self, '%s Error calculating power' % self.device_name)
-        return 1.0
+            return -1.0
 
     def pulse_off(self):
+        n = 0
         for k in range(12):
             try:
                 self.timer.write_attribute('channel_enable' + str(k), False)
             except:
+                n +=1
+            if n > 0:
                 log_exception('Pulse off error')
-            self.logger.info('Pulse off')
+            else:
+                self.logger.info('Pulse switched off')
 
 
 def looping():
