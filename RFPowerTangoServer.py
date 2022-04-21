@@ -4,7 +4,7 @@ import time
 import numpy
 import tango
 from tango import DispLevel, AttrWriteType, DevState
-from tango.server import attribute
+from tango.server import attribute, command
 
 from TangoServerPrototype import TangoServerPrototype
 from TangoUtils import Configuration
@@ -62,11 +62,11 @@ class RFPowerTangoServer(TangoServerPrototype):
             self.iscr_scale = self.get_scale(self.adc, self.config.get('iscr', 'chan5'))
             self.ug1_scale = self.get_scale(self.adc, self.config.get('ug1', 'chan6'))
 
-            self.logger.info('%s has been initialized' % self.device_name)
+            self.info('Initialized successfully')
             self.set_state(DevState.RUNNING)
             self.set_status('Initialized successfully')
         except Exception as ex:
-            self.log_exception('Exception initiating')
+            self.log_exception('Exception initializing')
             self.set_state(DevState.FAULT)
             self.set_status('Error initializing')
             return False
@@ -90,6 +90,7 @@ class RFPowerTangoServer(TangoServerPrototype):
             coeff = 1.0
         return coeff
 
+    @command(dtype_out=float)
     def calculate_anode_power(self):
         try:
             self.ia = self.adc.read_attribute(self.config.get('ia', 'chan1')).value * self.ia_scale
@@ -113,16 +114,17 @@ class RFPowerTangoServer(TangoServerPrototype):
                 self.anode_power.set_quality(tango.AttrQuality.ATTR_VALID)
                 return pa
             except:
-                log_exception('Can not calculate power')
+                self.log_exception('Can not calculate power')
                 self.power = -1.0
                 self.rf_power = -1.0
                 self.anode_power.set_quality(tango.AttrQuality.ATTR_INVALID)
                 return -1.0
         except:
             self.anode_power.set_quality(tango.AttrQuality.ATTR_INVALID)
-            log_exception(self, '%s Error calculating power' % self.device_name)
+            self.log_exception('Error calculating power')
             return -1.0
 
+    @command
     def pulse_off(self):
         n = 0
         for k in range(12):
@@ -131,9 +133,9 @@ class RFPowerTangoServer(TangoServerPrototype):
             except:
                 n +=1
             if n > 0:
-                log_exception('Pulse off error')
+                self.log_exception('Pulse off error')
             else:
-                self.logger.info('Pulse switched off')
+                self.info('Pulse switched off')
 
 
 def looping():
@@ -144,10 +146,10 @@ def looping():
         try:
             p = dev.calculate_anode_power()
             if p > dev.power_limit_vaue:
-                dev.logger.error('Anode power limit exceeded')
+                dev.error('Anode power limit exceeded')
                 dev.pulse_off()
         except:
-            log_exception(dev, '%s Error in loop' % dev.device_name)
+            dev.log_exception('Error in loop')
 
 
 if __name__ == "__main__":
