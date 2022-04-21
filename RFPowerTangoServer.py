@@ -66,7 +66,7 @@ class RFPowerTangoServer(TangoServerPrototype):
             self.set_state(DevState.RUNNING)
             self.set_status('Initialized successfully')
         except Exception as ex:
-            log_exception(self, 'Exception initiating %s', self.device_name)
+            self.log_exception('Exception initiating')
             self.set_state(DevState.FAULT)
             self.set_status('Error initializing')
             return False
