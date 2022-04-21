@@ -55,12 +55,12 @@ class RFPowerTangoServer(TangoServerPrototype):
             self.adc = tango.DeviceProxy(self.config.get('adc', 'binp/nbi/adc0'))
             self.dac = tango.DeviceProxy(self.config.get('dac', 'binp/nbi/dac0'))
 
-            self.ia = self.get_scale(self.adc, self.config.get('ia', 'chan1'))
-            self.ea = self.get_scale(self.adc, self.config.get('ea', 'chan2'))
-            self.ua = self.get_scale(self.adc, self.config.get('ua', 'chan3'))
-            self.ic = self.get_scale(self.adc, self.config.get('ic', 'chan4'))
-            self.iscr = self.get_scale(self.adc, self.config.get('iscr', 'chan5'))
-            self.ug1 = self.get_scale(self.adc, self.config.get('ug1', 'chan6'))
+            self.ia_scale = self.get_scale(self.adc, self.config.get('ia', 'chan1'))
+            self.ea_scale = self.get_scale(self.adc, self.config.get('ea', 'chan2'))
+            self.ua_scale = self.get_scale(self.adc, self.config.get('ua', 'chan3'))
+            self.ic_scale = self.get_scale(self.adc, self.config.get('ic', 'chan4'))
+            self.iscr_scale = self.get_scale(self.adc, self.config.get('iscr', 'chan5'))
+            self.ug1_scale = self.get_scale(self.adc, self.config.get('ug1', 'chan6'))
 
             self.logger.info('%s has been initialized' % self.device_name)
             self.set_state(DevState.RUNNING)
@@ -92,22 +92,22 @@ class RFPowerTangoServer(TangoServerPrototype):
 
     def calculate_anode_power(self):
         try:
-            ia = self.adc.read_attribute(self.config.get('ia', 'chan1')).value * self.ia
-            ea = self.adc.read_attribute(self.config.get('ea', 'chan2')).value * self.ea
-            ua = self.adc.read_attribute(self.config.get('ua', 'chan3')).value * self.ua
-            ic = self.adc.read_attribute(self.config.get('ic', 'chan4')).value * self.ic
-            iscr = self.adc.read_attribute(self.config.get('iscr', 'chan5')).value * self.iscr
-            ug1 = self.adc.read_attribute(self.config.get('ug1', 'chan6')).value * self.ug1
+            self.ia = self.adc.read_attribute(self.config.get('ia', 'chan1')).value * self.ia_scale
+            self.ea = self.adc.read_attribute(self.config.get('ea', 'chan2')).value * self.ea_scale
+            self.ua = self.adc.read_attribute(self.config.get('ua', 'chan3')).value * self.ua_scale
+            self.ic = self.adc.read_attribute(self.config.get('ic', 'chan4')).value * self.ic_scale
+            self.iscr = self.adc.read_attribute(self.config.get('iscr', 'chan5')).value * self.iscr_scale
+            self.ug1 = self.adc.read_attribute(self.config.get('ug1', 'chan6')).value * self.ug1_scale
             try:
-                t = numpy.arccos(-77.0/ug1)
+                t = numpy.arccos(-77.0/self.ug1)
                 # a0 = (numpy.sin(t) - t * numpy.cos(t)) / (numpy.pi * (1 - numpy.cos(t)))
                 a0 = (numpy.sin(t) - t * numpy.cos(t))
                 # a1 = (t - numpy.sin(t) * numpy.cos(t)) / (numpy.pi * (1 - numpy.cos(t)))
                 a1 = (t - numpy.sin(t) * numpy.cos(t))
-                i1 = (ic - iscr) * a1 / a0
-                prf = i1 * ua / 2.0
+                i1 = (self.ic - self.iscr) * a1 / a0
+                prf = i1 * self.ua / 2.0
                 self.rf_power = prf
-                ptot = ea * ia
+                ptot = self.ea * self.ia
                 pa = ptot - prf
                 self.power = pa
                 self.anode_power.set_quality(tango.AttrQuality.ATTR_VALID)
