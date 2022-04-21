@@ -41,6 +41,7 @@ class RFPowerTangoServer(TangoServerPrototype):
         self.power_limit_value = self.config.get('power_limit', 50.0)
         self.power_limit.set_write_value(self.power_limit_value)
         self.configure_tango_logging()
+        RFPowerTangoServer.device_list.append(self)
 
     def set_config(self):
         super().set_config()
