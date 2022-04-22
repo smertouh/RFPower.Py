@@ -1,4 +1,5 @@
 import logging
+import sys
 import time
 
 import numpy
@@ -6,6 +7,7 @@ import tango
 from tango import DispLevel, AttrWriteType, DevState
 from tango.server import attribute, command
 
+sys.path.append('../TangoUtils')
 from TangoServerPrototype import TangoServerPrototype
 from TangoUtils import Configuration
 from config_logger import config_logger
