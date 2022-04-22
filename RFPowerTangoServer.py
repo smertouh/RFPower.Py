@@ -42,15 +42,18 @@ class RFPowerTangoServer(TangoServerPrototype):
         self.rf_power = 0.0
         self.power_limit_value = 50.0
         self.device_name = ''
+        # devices
         self.timer = None
         self.adc = None
         self.dac = None
+        # attribute values
         self.ia = None
         self.ea = None
         self.ua = None
         self.ic = None
         self.iscr = None
         self.ug1 = None
+        #
         super().init_device()
         self.power_limit_value = self.config.get('power_limit', 50.0)
         self.power_limit.set_write_value(self.power_limit_value)
@@ -108,6 +111,9 @@ class RFPowerTangoServer(TangoServerPrototype):
     @command(dtype_out=float)
     def calculate_anode_power(self):
         try:
+            if self.get_state() != DevState.RUNNING:
+                self.warning('Server is not initialized')
+                return
             self.ia = self.adc.read_attribute(self.config.get('ia', 'chan1')).value * self.ia_scale
             self.ea = self.adc.read_attribute(self.config.get('ea', 'chan2')).value * self.ea_scale
             self.ua = self.adc.read_attribute(self.config.get('ua', 'chan3')).value * self.ua_scale
@@ -164,6 +170,8 @@ def looping():
     for dev in RFPowerTangoServer.device_list:
         time.sleep(0.001)
         try:
+            if dev.get_state() != DevState.RUNNING:
+                continue
             p = dev.calculate_anode_power()
             if p > dev.power_limit_value:
                 dev.error('Anode power limit exceeded')
@@ -174,3 +182,4 @@ def looping():
 
 if __name__ == "__main__":
     RFPowerTangoServer.run_server(event_loop=looping)
+    # RFPowerTangoServer.run_server()
