@@ -16,6 +16,7 @@ from log_exception import log_exception
 t0 = time.time()
 OFF_PASSWORD = 'topsecret'
 
+
 class RFPowerTangoServer(TangoServerPrototype):
     server_version = '1.0'
     server_name = 'Python RF Power Control Tango Server'
@@ -27,11 +28,17 @@ class RFPowerTangoServer(TangoServerPrototype):
                             unit="kW", format="%f",
                             doc="Tetrode anode power")
 
+    anode_power_ok = attribute(label="anode_power_ok", dtype=bool,
+                               display_level=DispLevel.OPERATOR,
+                               access=AttrWriteType.READ,
+                               unit="", format="%s",
+                               doc="Is Tetrode anode power OK")
+
     output_power = attribute(label="output_power", dtype=float,
-                            display_level=DispLevel.OPERATOR,
-                            access=AttrWriteType.READ,
-                            unit="kW", format="%f",
-                            doc="Tetrode output power")
+                             display_level=DispLevel.OPERATOR,
+                             access=AttrWriteType.READ,
+                             unit="kW", format="%f",
+                             doc="Tetrode output power")
 
     power_limit = attribute(label="anode_power_limit", dtype=float,
                             display_level=DispLevel.OPERATOR,
@@ -92,6 +99,9 @@ class RFPowerTangoServer(TangoServerPrototype):
     def read_anode_power(self):
         return self.power
 
+    def read_anode_power_ok(self):
+        return self.power <= self.power_limit_value and self.get_state() == DevState.RUNNING
+
     def read_output_power(self):
         return self.rf_power
 
@@ -125,7 +135,7 @@ class RFPowerTangoServer(TangoServerPrototype):
             if numpy.abs(self.ug1) < 77.0:
                 t = 1.0e-6
             else:
-                t = numpy.arccos(-77.0/self.ug1)
+                t = numpy.arccos(-77.0 / self.ug1)
             # a0 = (numpy.sin(t) - t * numpy.cos(t)) / (numpy.pi * (1 - numpy.cos(t)))
             a0 = (numpy.sin(t) - t * numpy.cos(t))
             # a1 = (t - numpy.sin(t) * numpy.cos(t)) / (numpy.pi * (1 - numpy.cos(t)))
@@ -161,7 +171,7 @@ class RFPowerTangoServer(TangoServerPrototype):
             try:
                 self.timer.write_attribute('channel_enable' + str(k), False)
             except:
-                n +=1
+                n += 1
         if n > 0:
             self.log_exception('Pulse off error')
         else:
