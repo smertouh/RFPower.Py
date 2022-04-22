@@ -25,6 +25,12 @@ class RFPowerTangoServer(TangoServerPrototype):
                             unit="kW", format="%f",
                             doc="Tetrode anode power")
 
+    output_power = attribute(label="output_power", dtype=float,
+                            display_level=DispLevel.OPERATOR,
+                            access=AttrWriteType.READ,
+                            unit="kW", format="%f",
+                            doc="Tetrode output power")
+
     power_limit = attribute(label="anode_power_limit", dtype=float,
                             display_level=DispLevel.OPERATOR,
                             access=AttrWriteType.READ_WRITE,
@@ -39,6 +45,12 @@ class RFPowerTangoServer(TangoServerPrototype):
         self.timer = None
         self.adc = None
         self.dac = None
+        self.ia = None
+        self.ea = None
+        self.ua = None
+        self.ic = None
+        self.iscr = None
+        self.ug1 = None
         super().init_device()
         self.power_limit_value = self.config.get('power_limit', 50.0)
         self.power_limit.set_write_value(self.power_limit_value)
@@ -75,6 +87,9 @@ class RFPowerTangoServer(TangoServerPrototype):
     def read_anode_power(self):
         return self.power
 
+    def read_output_power(self):
+        return self.rf_power
+
     def read_power_limit(self):
         return self.power_limit_value
 
@@ -108,6 +123,7 @@ class RFPowerTangoServer(TangoServerPrototype):
                 i1 = (self.ic - self.iscr) * a1 / a0
                 prf = i1 * self.ua / 2.0
                 self.rf_power = prf
+                self.output_power.set_quality(tango.AttrQuality.ATTR_VALID)
                 ptot = self.ea * self.ia
                 pa = ptot - prf
                 self.power = pa
@@ -118,6 +134,7 @@ class RFPowerTangoServer(TangoServerPrototype):
                 self.power = -1.0
                 self.rf_power = -1.0
                 self.anode_power.set_quality(tango.AttrQuality.ATTR_INVALID)
+                self.output_power.set_quality(tango.AttrQuality.ATTR_INVALID)
                 return -1.0
         except:
             self.anode_power.set_quality(tango.AttrQuality.ATTR_INVALID)
