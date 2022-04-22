@@ -164,7 +164,7 @@ def looping():
         time.sleep(0.001)
         try:
             p = dev.calculate_anode_power()
-            if p > dev.power_limit_vaue:
+            if p > dev.power_limit_value:
                 dev.error('Anode power limit exceeded')
                 dev.pulse_off('topsecret')
         except:
