@@ -15,7 +15,7 @@ t0 = time.time()
 OFF_PASSWORD = 'topsecret'
 
 class RFPowerTangoServer(TangoServerPrototype):
-    server_version = '0.0'
+    server_version = '1.0'
     server_name = 'Python RF Power Control Tango Server'
     device_list = []
 
@@ -70,12 +70,12 @@ class RFPowerTangoServer(TangoServerPrototype):
             self.adc = tango.DeviceProxy(self.config.get('adc', 'binp/nbi/adc0'))
             self.dac = tango.DeviceProxy(self.config.get('dac', 'binp/nbi/dac0'))
 
-            self.ia_scale = self.get_scale(self.adc, self.config.get('ia', 'chan1'))
-            self.ea_scale = self.get_scale(self.adc, self.config.get('ea', 'chan2'))
-            self.ua_scale = self.get_scale(self.adc, self.config.get('ua', 'chan3'))
-            self.ic_scale = self.get_scale(self.adc, self.config.get('ic', 'chan4'))
-            self.iscr_scale = self.get_scale(self.adc, self.config.get('iscr', 'chan5'))
-            self.ug1_scale = self.get_scale(self.adc, self.config.get('ug1', 'chan6'))
+            self.ia_scale = self.get_scale(self.adc, self.config.get('ia', 'chan15'))
+            self.ea_scale = self.get_scale(self.adc, self.config.get('ea', 'chan16'))
+            self.ua_scale = self.get_scale(self.adc, self.config.get('ua', 'chan1'))
+            self.ic_scale = self.get_scale(self.adc, self.config.get('ic', 'chan22'))
+            self.iscr_scale = self.get_scale(self.adc, self.config.get('iscr', 'chan0'))
+            self.ug1_scale = self.get_scale(self.adc, self.config.get('ug1', 'chan2'))
 
             self.info('Initialized successfully')
             self.set_state(DevState.RUNNING)
@@ -114,13 +114,16 @@ class RFPowerTangoServer(TangoServerPrototype):
             if self.get_state() != DevState.RUNNING:
                 self.warning('Server is not initialized')
                 return
-            self.ia = self.adc.read_attribute(self.config.get('ia', 'chan1')).value * self.ia_scale
-            self.ea = self.adc.read_attribute(self.config.get('ea', 'chan2')).value * self.ea_scale
-            self.ua = self.adc.read_attribute(self.config.get('ua', 'chan3')).value * self.ua_scale
-            self.ic = self.adc.read_attribute(self.config.get('ic', 'chan4')).value * self.ic_scale
-            self.iscr = self.adc.read_attribute(self.config.get('iscr', 'chan5')).value * self.iscr_scale
-            self.ug1 = self.adc.read_attribute(self.config.get('ug1', 'chan6')).value * self.ug1_scale
-            t = numpy.arccos(-77.0/self.ug1)
+            self.ia = self.adc.read_attribute(self.config.get('ia', 'chan15')).value * self.ia_scale
+            self.ea = self.adc.read_attribute(self.config.get('ea', 'chan16')).value * self.ea_scale
+            self.ua = self.adc.read_attribute(self.config.get('ua', 'chan1')).value * self.ua_scale
+            self.ic = self.adc.read_attribute(self.config.get('ic', 'chan22')).value * self.ic_scale
+            self.iscr = self.adc.read_attribute(self.config.get('iscr', 'chan0')).value * self.iscr_scale
+            self.ug1 = self.adc.read_attribute(self.config.get('ug1', 'chan2')).value * self.ug1_scale
+            if numpy.abs(self.ug1) < 77.0:
+                t = 1.0e-6
+            else:
+                t = numpy.arccos(-77.0/self.ug1)
             # a0 = (numpy.sin(t) - t * numpy.cos(t)) / (numpy.pi * (1 - numpy.cos(t)))
             a0 = (numpy.sin(t) - t * numpy.cos(t))
             # a1 = (t - numpy.sin(t) * numpy.cos(t)) / (numpy.pi * (1 - numpy.cos(t)))
@@ -157,10 +160,10 @@ class RFPowerTangoServer(TangoServerPrototype):
                 self.timer.write_attribute('channel_enable' + str(k), False)
             except:
                 n +=1
-            if n > 0:
-                self.log_exception('Pulse off error')
-            else:
-                self.info('Pulse switched off')
+        if n > 0:
+            self.log_exception('Pulse off error')
+        else:
+            self.info('Pulse switched off')
 
 
 def looping():
