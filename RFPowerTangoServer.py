@@ -12,7 +12,7 @@ from config_logger import config_logger
 from log_exception import log_exception
 
 t0 = time.time()
-
+OFF_PASSWORD = 'topsecret'
 
 class RFPowerTangoServer(TangoServerPrototype):
     server_version = '0.0'
@@ -143,7 +143,8 @@ class RFPowerTangoServer(TangoServerPrototype):
 
     @command(dtype_in=str)
     def pulse_off(self, pwd):
-        if pwd != 'topsecret':
+        if pwd != OFF_PASSWORD:
+            self.debug('Incorrect password')
             return
         n = 0
         for k in range(12):
@@ -166,7 +167,7 @@ def looping():
             p = dev.calculate_anode_power()
             if p > dev.power_limit_value:
                 dev.error('Anode power limit exceeded')
-                dev.pulse_off('topsecret')
+                dev.pulse_off(OFF_PASSWORD)
         except:
             dev.log_exception('Error in loop')
 
