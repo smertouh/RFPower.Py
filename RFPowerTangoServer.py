@@ -120,31 +120,30 @@ class RFPowerTangoServer(TangoServerPrototype):
             self.ic = self.adc.read_attribute(self.config.get('ic', 'chan4')).value * self.ic_scale
             self.iscr = self.adc.read_attribute(self.config.get('iscr', 'chan5')).value * self.iscr_scale
             self.ug1 = self.adc.read_attribute(self.config.get('ug1', 'chan6')).value * self.ug1_scale
-            try:
-                t = numpy.arccos(-77.0/self.ug1)
-                # a0 = (numpy.sin(t) - t * numpy.cos(t)) / (numpy.pi * (1 - numpy.cos(t)))
-                a0 = (numpy.sin(t) - t * numpy.cos(t))
-                # a1 = (t - numpy.sin(t) * numpy.cos(t)) / (numpy.pi * (1 - numpy.cos(t)))
-                a1 = (t - numpy.sin(t) * numpy.cos(t))
-                i1 = (self.ic - self.iscr) * a1 / a0
-                prf = i1 * self.ua / 2.0
-                self.rf_power = prf
-                self.output_power.set_quality(tango.AttrQuality.ATTR_VALID)
-                ptot = self.ea * self.ia
-                pa = ptot - prf
-                self.power = pa
-                self.anode_power.set_quality(tango.AttrQuality.ATTR_VALID)
-                return pa
-            except:
-                self.log_exception('Can not calculate power')
-                self.power = -1.0
-                self.rf_power = -1.0
-                self.anode_power.set_quality(tango.AttrQuality.ATTR_INVALID)
-                self.output_power.set_quality(tango.AttrQuality.ATTR_INVALID)
-                return -1.0
+            t = numpy.arccos(-77.0/self.ug1)
+            # a0 = (numpy.sin(t) - t * numpy.cos(t)) / (numpy.pi * (1 - numpy.cos(t)))
+            a0 = (numpy.sin(t) - t * numpy.cos(t))
+            # a1 = (t - numpy.sin(t) * numpy.cos(t)) / (numpy.pi * (1 - numpy.cos(t)))
+            a1 = (t - numpy.sin(t) * numpy.cos(t))
+            i1 = (self.ic - self.iscr) * a1 / a0
+            prf = i1 * self.ua / 2.0
+            self.rf_power = prf
+            self.output_power.set_value(self.rf_power)
+            self.output_power.set_quality(tango.AttrQuality.ATTR_VALID)
+            ptot = self.ea * self.ia
+            pa = ptot - prf
+            self.power = pa
+            self.anode_power.set_value(self.power)
+            self.anode_power.set_quality(tango.AttrQuality.ATTR_VALID)
+            return pa
         except:
+            self.log_exception('Can not calculate power')
+            self.power = -1.0
+            self.rf_power = -1.0
+            self.output_power.set_value(self.rf_power)
+            self.anode_power.set_value(self.power)
             self.anode_power.set_quality(tango.AttrQuality.ATTR_INVALID)
-            self.log_exception('Error calculating power')
+            self.output_power.set_quality(tango.AttrQuality.ATTR_INVALID)
             return -1.0
 
     @command(dtype_in=str)
