@@ -29,7 +29,12 @@ def read_values(vec):
                 mess=f.readlines()[-1].split(";")
                 for mes in mess:
                     if v in mes:
-                        result.append(float(mes.split("=")[1].rsplit(" ",1)[0]))
+                        if "True" in mes:
+                            result.append(1)
+                        elif "False"in mes:
+                            result.append(0)
+                        else:
+                            result.append(float(mes.split("=")[1].rsplit(" ",1)[0]))
     except:
         for v in vec:
             result.append(0)
@@ -54,7 +59,7 @@ def calcPRF(val):
     return PRF
 
 class ReadLogServer(TangoServerPrototype):
-    server_version = '0.1'
+    server_version = '0.2'
     server_name = 'Python ReadLogServer Tango Server'
     device_list = []
 
@@ -94,6 +99,17 @@ class ReadLogServer(TangoServerPrototype):
                             unit=" C", format="%f",
                             doc="Return temperature of Lauda")
 
+    Protection = attribute(label="Protection", dtype=float,
+                      display_level=DispLevel.OPERATOR,
+                      access=AttrWriteType.READ,
+                      unit=" BD", format="%1.0f",
+                      doc="Return number of BD")
+    Shot = attribute(label="Shot_number", dtype=int,
+                           display_level=DispLevel.OPERATOR,
+                           access=AttrWriteType.READ,
+                           unit=" shot", format="%6.0f",
+                           doc="Returns shot number")
+
 
 
     def init_device(self):
@@ -104,6 +120,9 @@ class ReadLogServer(TangoServerPrototype):
         self.PRF = 0.0
         self.TLauda = 0.0
         self.device_name = ''
+        self.BD_protection=0
+        self.shot_number=0.0
+
         super().init_device()
         ReadLogServer.device_list.append(self)
 
@@ -120,13 +139,17 @@ class ReadLogServer(TangoServerPrototype):
         return self.PRF
     def read_Lauda(self):
         return self.TLauda
+    def read_Protection(self):
+        return self.BD_protection
+    def read_Shot(self):
+        return self.shot_number
 
 
 
 
 def looping():
     global t0
-    time.sleep(30)
+    time.sleep(3)
     for dev in ReadLogServer.device_list:
         time.sleep(0.001)
         try:
@@ -135,7 +158,7 @@ def looping():
             dev.log_exception('Error in loop')
 
     #print(s)
-    val=(read_values(["RF_UA1","Iac_2","Iex","Uex","Utot","IAG","Ret","RF_UA1","Cath1_C","S_C1(A)","RF_UG1"]))
+    val=(read_values(["RF_UA1","Iac_2","Iex","Uex","Utot","IAG","Ret","RF_UA1","Cath1_C","S_C1(A)","RF_UG1","U110kV","U15kV","I110kV","I15kV","Shot"]))
     
     
     dev.Ib = val[1]-val[5]
@@ -144,7 +167,8 @@ def looping():
     dev.Utot = val[4]
     dev.TLauda = val[6]
     dev.PRF = calcPRF(val)
-    
+    dev.BD_protection = int(val[11] + val[12] + val[13] + val[14])
+    dev.shot_number = val[15]
 if __name__ == "__main__":
     ReadLogServer.run_server(event_loop=looping)
     # RFPowerTangoServer.run_server()
